@@ -1,0 +1,7 @@
+{
+  "name": "Auto-Link Platform",
+  "description": "A production-grade group meetup, automated M-Pesa payment, and SMS confirmation system for the Kenyan market.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
