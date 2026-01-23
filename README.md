@@ -1,20 +1,38 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# 🥭 Auto-Link Platform
 
-# Run and deploy your AI Studio app
+**Auto-Link** is a production-grade coordination platform designed specifically for the Kenyan market. It simplifies group meetups, automates payment tracking through simulated M-Pesa flows, and ensures community accountability through unique identity rules.
 
-This contains everything you need to run your app locally.
+## 🚀 Key Features
 
-View your app in AI Studio: https://ai.studio/apps/drive/1XjwZ0HvPG0QPCkHr4VMMUNy2Pyg2QU_p
+- **Unique Identity System**: Users register with a custom **Hcode** (e.g., `USER-77`), creating a unique fingerprint for every member.
+- **Group Management**: Create communities or join them using unique `@handle` links.
+- **Automated Meetups**: Initiation tools for admins to set locations (Hcodes), times, and per-head contributions.
+- **Simulated M-Pesa Integration**: Mock STK Push flows to track who has paid before a meeting starts.
+- **Advanced Meeting Closure**:
+    - **Absentees**: Automatically track and notify members who paid but didn't show up.
+    - **Goods Tracking**: Log consumption (e.g., drinks, items) during the event.
+    - **AOPs (Any Other Partners)**: Invite guests who aren't on the platform yet.
+- **AI-Powered Tools**: 
+    - **SMS Generator**: Craft professional meeting invites using Gemini AI.
+    - **Mango Assistant**: An embedded in-app helper to guide you through every feature.
 
-## Run Locally
+## 🛠 Tech Stack
 
-**Prerequisites:**  Node.js
+- **Frontend**: React 19, TypeScript, Tailwind CSS
+- **Intelligence**: Google Gemini API (`gemini-3-pro-preview`)
+- **Storage**: Browser LocalStorage (Persistent DB Simulation)
+- **Communication**: Global Simulated Inbox (Mock Email/SMS system)
 
+## 🚦 Getting Started
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+1. **Sign Up**: Register with your phone number and email. 
+2. **Verify**: Check the **Mock Inbox** (top right) for your verification code.
+3. **Join/Create**: Start a group and share the join link with your partners.
+4. **Initiate**: Pick members, set a KES amount, and blast invites.
+5. **Ask 🥭**: If you get stuck, tap the mango icon at the bottom right for instant guidance.
+
+## 📝 Note for Reviewers
+This application is a **high-fidelity prototype**. Payments and emails are simulated within the browser environment to allow for instant testing without requiring external API credits or banking certificates.
+
+---
+*Built for communities that value efficiency and accountability.*
