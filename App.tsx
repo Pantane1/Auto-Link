@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, SimulatedEmail } from './types';
-import { getDB } from './services/db';
-import AuthView from './components/Auth';
-import Dashboard from './components/Dashboard';
-import GroupView from './components/GroupView';
-import EventDashboard from './components/EventDashboard';
-import AIAssistant from './components/AIAssistant';
+import { User, SimulatedEmail } from './types.ts';
+import { getDB } from './services/db.ts';
+import AuthView from './components/Auth.tsx';
+import Dashboard from './components/Dashboard.tsx';
+import GroupView from './components/GroupView.tsx';
+import EventDashboard from './components/EventDashboard.tsx';
+import AIAssistant from './components/AIAssistant.tsx';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -18,9 +18,17 @@ const App: React.FC = () => {
   const [selectedEmail, setSelectedEmail] = useState<SimulatedEmail | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem('autolink_user');
-    if (saved) {
-      setCurrentUser(JSON.parse(saved));
+    try {
+      const saved = localStorage.getItem('autolink_user');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.id) {
+          setCurrentUser(parsed);
+        }
+      }
+    } catch (e) {
+      console.warn("Auto-Link: Failed to parse user session", e);
+      localStorage.removeItem('autolink_user');
     }
 
     const handleHash = () => {
@@ -34,7 +42,6 @@ const App: React.FC = () => {
     const handleNewEmail = (e: any) => {
       const email = e.detail as SimulatedEmail;
       setNotifications(prev => [email, ...prev]);
-      // Auto-hide after 10 seconds
       setTimeout(() => {
         setNotifications(prev => prev.filter(n => n.id !== email.id));
       }, 10000);
@@ -215,7 +222,6 @@ const SimulatedInboxModal: React.FC<{
   return (
     <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[201] flex items-center justify-center p-4">
       <div className="bg-white w-full max-w-4xl h-[80vh] rounded-2xl shadow-2xl flex overflow-hidden">
-        {/* Sidebar */}
         <div className="w-1/3 border-r bg-slate-50 overflow-y-auto">
           <div className="p-6 border-b bg-white flex justify-between items-center sticky top-0 z-10">
             <h2 className="text-xl font-bold text-slate-800">Mock Inbox</h2>
@@ -237,7 +243,6 @@ const SimulatedInboxModal: React.FC<{
             ))}
           </div>
         </div>
-        {/* Email Body */}
         <div className="flex-1 flex flex-col bg-white">
           {selectedEmail ? (
             <div className="flex-1 overflow-y-auto p-10">

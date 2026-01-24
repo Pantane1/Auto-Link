@@ -1,5 +1,5 @@
 
-import { User, Group, GroupMember, Event, EventInvite, DBState, PaymentStatus, SMSLog, EventReport, SimulatedEmail } from '../types';
+import { User, Group, GroupMember, Event, EventInvite, DBState, PaymentStatus, SMSLog, EventReport, SimulatedEmail } from '../types.ts';
 
 const DB_KEY = 'autolink_db';
 
@@ -13,19 +13,40 @@ const initialState: DBState = {
   simulatedEmails: []
 };
 
+// Fallback for environments without crypto.randomUUID
+const generateId = () => {
+  try {
+    return crypto.randomUUID();
+  } catch (e) {
+    return Math.random().toString(36).substring(2) + Date.now().toString(36);
+  }
+};
+
 export const getDB = (): DBState => {
-  const data = localStorage.getItem(DB_KEY);
-  return data ? JSON.parse(data) : initialState;
+  try {
+    const data = localStorage.getItem(DB_KEY);
+    if (!data) return initialState;
+    const parsed = JSON.parse(data);
+    // Basic structural check to avoid crashes if structure changed
+    return { ...initialState, ...parsed };
+  } catch (e) {
+    console.warn("Auto-Link: Failed to parse DB, resetting to initial state", e);
+    return initialState;
+  }
 };
 
 export const saveDB = (state: DBState) => {
-  localStorage.setItem(DB_KEY, JSON.stringify(state));
+  try {
+    localStorage.setItem(DB_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.error("Auto-Link: Failed to save DB", e);
+  }
 };
 
 const sendSimulatedEmail = (to: string, subject: string, body: string) => {
   const db = getDB();
   const email: SimulatedEmail = {
-    id: crypto.randomUUID(),
+    id: generateId(),
     to,
     subject,
     body,
@@ -34,7 +55,6 @@ const sendSimulatedEmail = (to: string, subject: string, body: string) => {
   };
   db.simulatedEmails = [email, ...db.simulatedEmails];
   saveDB(db);
-  // Dispatch a custom event to notify components
   window.dispatchEvent(new CustomEvent('new-simulated-email', { detail: email }));
 };
 
@@ -61,7 +81,7 @@ export const registerUser = (user: Omit<User, 'id' | 'createdAt' | 'isVerified' 
   const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
   const newUser: User = {
     ...user,
-    id: crypto.randomUUID(),
+    id: generateId(),
     isVerified: false,
     verificationCode,
     createdAt: new Date().toISOString()
@@ -96,7 +116,7 @@ export const createGroup = (group: Omit<Group, 'id' | 'uniqueId' | 'createdAt'>)
   const db = getDB();
   const newGroup: Group = {
     ...group,
-    id: crypto.randomUUID(),
+    id: generateId(),
     uniqueId: `AL-${Math.floor(1000 + Math.random() * 9000)}`,
     createdAt: new Date().toISOString()
   };
@@ -138,7 +158,7 @@ export const createInviteEvent = (
 ) => {
   const db = getDB();
   const newEvent: Event = {
-    id: crypto.randomUUID(),
+    id: generateId(),
     groupId,
     createdBy: initiatorId,
     amountPerMember: amount,
@@ -162,7 +182,7 @@ export const createInviteEvent = (
       );
     }
     return {
-      id: crypto.randomUUID(),
+      id: generateId(),
       eventId: newEvent.id,
       invitedUserId: uid,
       emailSent: true,
@@ -197,7 +217,6 @@ export const closeEvent = (eventId: string, initiatorId: string, report: EventRe
 
   db.events[eventIndex] = event;
 
-  // Simulation: Email Absentees
   if (report.absentUserIds.length > 0) {
     report.absentUserIds.forEach(uid => {
       const user = db.users.find(u => u.id === uid);
@@ -211,7 +230,6 @@ export const closeEvent = (eventId: string, initiatorId: string, report: EventRe
     });
   }
 
-  // Simulation: Email AOPs
   if (report.aops.length > 0) {
     const group = db.groups.find(g => g.id === event.groupId);
     report.aops.forEach(aop => {
@@ -245,7 +263,7 @@ export const sendBulkSMS = (eventId: string, initiatorId: string, message: strin
   if (paidInvites.length === 0) throw new Error("No paid members to send SMS to.");
   paidInvites.forEach(i => i.smsSent = true);
   const log: SMSLog = {
-    id: crypto.randomUUID(),
+    id: generateId(),
     eventId,
     sentBy: initiatorId,
     message,

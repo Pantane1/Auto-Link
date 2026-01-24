@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI } from '@google/genai';
-import { ChatMessage } from '../types';
+import { ChatMessage } from '../types.ts';
 
 interface AIAssistantProps {
   currentView: string;
-  activeContext?: string; // e.g., Group Name or Event Title
+  activeContext?: string;
 }
 
 const AIAssistant: React.FC<AIAssistantProps> = ({ currentView, activeContext }) => {
@@ -31,45 +31,45 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ currentView, activeContext })
     e.preventDefault();
     if (!input.trim() || isTyping) return;
 
+    const apiKey = typeof process !== 'undefined' ? process.env.API_KEY : undefined;
+    if (!apiKey) {
+      setMessages(prev => [...prev, { role: 'user', text: input.trim() }, { role: 'model', text: "API Key is missing. I can't think right now!" }]);
+      setInput('');
+      return;
+    }
+
     const userMessage = input.trim();
     setInput('');
     setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
     setIsTyping(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey });
       const chat = ai.chats.create({
         model: 'gemini-3-pro-preview',
         config: {
           systemInstruction: `You are a helpful and professional AI assistant for the Auto-Link Platform.
           Auto-Link is a platform for group meetups, automated M-Pesa payments, and SMS confirmations in Kenya.
           
-          Features you should know about:
+          Features:
           1. Identity Rules: Users register with a unique Hcode and verify via simulated email.
           2. Groups: Users can create groups or join via @username links.
-          3. Initiation: Group admins can initiate meetups, inviting specific members with a KES amount, location (Hcode), and time.
-          4. Payments: Members pay via simulated M-Pesa STK push.
-          5. Closure: Initiators close meetings, marking absentees, recording goods consumed (liquor, cigarettes, etc.), and adding AOPs (Any Other Partners).
-          6. AI SMS: Initiators can generate professional invite texts using Gemini.
-          7. Simulated Inbox: Because it's a demo, emails are "sent" to an in-app inbox found in the top navigation.
+          3. Initiation: Group admins can initiate meetups.
+          4. Payments: Members pay via simulated M-Pesa.
+          5. Closure: Initiators close meetings, marking absentees and goods.
+          6. AI SMS: Generate professional invite texts.
 
           Current Context:
-          - The user is currently on the "${currentView}" screen.
-          ${activeContext ? `- Active Context: ${activeContext}` : ''}
-
-          Tone Rules:
-          - Friendly, professional, and supportive.
-          - Concise but clear.
-          - Avoid technical jargon.
-          - Stay strictly within Auto-Link's context.`,
+          - Screen: "${currentView}"
+          ${activeContext ? `- Active Context: ${activeContext}` : ''}`,
         }
       });
 
       const response = await chat.sendMessage({ message: userMessage });
       setMessages(prev => [...prev, { role: 'model', text: response.text || "I'm sorry, I couldn't process that request." }]);
     } catch (error) {
-      console.error("AI Error:", error);
-      setMessages(prev => [...prev, { role: 'model', text: "I encountered an error connecting to my brain. Please try again in a moment." }]);
+      console.error("AI Assistant Error:", error);
+      setMessages(prev => [...prev, { role: 'model', text: "I encountered an error. Please try again." }]);
     } finally {
       setIsTyping(false);
     }
@@ -77,7 +77,6 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ currentView, activeContext })
 
   return (
     <>
-      {/* Mango Trigger Button */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
         className="fixed bottom-6 right-6 w-14 h-14 bg-amber-400 hover:bg-amber-500 text-white rounded-full shadow-2xl flex items-center justify-center text-3xl z-[300] transition-transform active:scale-95 hover:scale-110"
@@ -86,10 +85,8 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ currentView, activeContext })
         🥭
       </button>
 
-      {/* Chat Window */}
       {isOpen && (
         <div className="fixed bottom-24 right-6 w-[90vw] max-w-sm h-[500px] bg-white rounded-3xl shadow-2xl z-[301] flex flex-col overflow-hidden border border-slate-200 animate-slideUp">
-          {/* Header */}
           <div className="bg-emerald-700 p-4 text-white flex justify-between items-center">
             <div className="flex items-center gap-2">
               <span className="text-xl">🥭</span>
@@ -103,7 +100,6 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ currentView, activeContext })
             </button>
           </div>
 
-          {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -130,7 +126,6 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ currentView, activeContext })
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input */}
           <form onSubmit={handleSend} className="p-4 border-t bg-white">
             <div className="relative">
               <input 
