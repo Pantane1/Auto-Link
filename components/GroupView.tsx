@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Group, DBState } from '../types';
-import { getDB, createInviteEvent } from '../services/db';
+import { getDB, createInviteEvent, joinGroup } from '../services/db';
 
 interface GroupViewProps {
   groupId: string;
@@ -15,6 +15,7 @@ const GroupView: React.FC<GroupViewProps> = ({ groupId, userId, onBack, onEventS
   const group = db.groups.find(g => g.id === groupId);
   const memberRecords = db.members.filter(m => m.groupId === groupId);
   const members = db.users.filter(u => memberRecords.some(mr => mr.userId === u.id));
+  const isMember = memberRecords.some(mr => mr.userId === userId);
   
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -25,7 +26,19 @@ const GroupView: React.FC<GroupViewProps> = ({ groupId, userId, onBack, onEventS
 
   if (!group) return null;
 
+  const handleJoin = () => {
+    try {
+      joinGroup(userId, group.username);
+      setDb(getDB());
+      localStorage.removeItem('autolink_pending_join');
+      window.location.hash = '';
+    } catch (e: any) {
+      alert(e.message);
+    }
+  };
+
   const toggleSelect = (id: string) => {
+    if (!isMember) return;
     if (id === userId) return;
     setSelectedMembers(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
@@ -55,6 +68,21 @@ const GroupView: React.FC<GroupViewProps> = ({ groupId, userId, onBack, onEventS
         <button onClick={onBack} className="text-slate-500 hover:text-emerald-600 font-medium transition-colors">← Back</button>
       </div>
 
+      {!isMember && (
+        <div className="bg-emerald-50 border border-emerald-200 p-6 rounded-3xl flex flex-col md:flex-row justify-between items-center gap-4 animate-slideIn">
+          <div className="flex items-center gap-4">
+            <div className="bg-emerald-600 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold">!</div>
+            <p className="text-emerald-800 font-medium">You are viewing this group. Join to participate in meetups.</p>
+          </div>
+          <button 
+            onClick={handleJoin}
+            className="bg-emerald-600 text-white px-8 py-2.5 rounded-2xl font-bold shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all whitespace-nowrap"
+          >
+            Join Group Now
+          </button>
+        </div>
+      )}
+
       <div className="bg-emerald-800 text-white p-10 rounded-3xl shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <h1 className="text-4xl font-bold tracking-tight">{group.name}</h1>
@@ -67,15 +95,15 @@ const GroupView: React.FC<GroupViewProps> = ({ groupId, userId, onBack, onEventS
         <div className="lg:col-span-2 space-y-8">
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold text-slate-800">Members & Initiation</h2>
-              {selectedMembers.length > 0 && <button onClick={() => setShowInviteModal(true)} className="bg-emerald-600 text-white px-5 py-2 rounded-xl text-xs font-bold animate-pulse shadow-lg shadow-emerald-200">Start Meetup with {selectedMembers.length} →</button>}
+              <h2 className="text-xl font-bold text-slate-800">Members</h2>
+              {isMember && selectedMembers.length > 0 && <button onClick={() => setShowInviteModal(true)} className="bg-emerald-600 text-white px-5 py-2 rounded-xl text-xs font-bold animate-pulse shadow-lg shadow-emerald-200">Start Meetup with {selectedMembers.length} →</button>}
             </div>
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-slate-100">
               {members.map(member => (
                 <div 
                   key={member.id} 
                   onClick={() => toggleSelect(member.id)}
-                  className={`p-4 flex items-center justify-between cursor-pointer transition-colors ${selectedMembers.includes(member.id) ? 'bg-emerald-50' : 'hover:bg-slate-50'}`}
+                  className={`p-4 flex items-center justify-between transition-colors ${isMember ? 'cursor-pointer' : ''} ${selectedMembers.includes(member.id) ? 'bg-emerald-50' : 'hover:bg-slate-50'}`}
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-400">{member.fullName[0]}</div>
@@ -84,7 +112,7 @@ const GroupView: React.FC<GroupViewProps> = ({ groupId, userId, onBack, onEventS
                       <p className="text-[10px] text-slate-400 font-mono">{member.hcode}</p>
                     </div>
                   </div>
-                  {member.id !== userId && <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${selectedMembers.includes(member.id) ? 'bg-emerald-500 border-emerald-500 text-white scale-110' : 'border-slate-200'}`}>{selectedMembers.includes(member.id) && "✓"}</div>}
+                  {isMember && member.id !== userId && <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${selectedMembers.includes(member.id) ? 'bg-emerald-500 border-emerald-500 text-white scale-110' : 'border-slate-200'}`}>{selectedMembers.includes(member.id) && "✓"}</div>}
                 </div>
               ))}
             </div>
@@ -93,13 +121,13 @@ const GroupView: React.FC<GroupViewProps> = ({ groupId, userId, onBack, onEventS
           <div className="space-y-4">
             <h2 className="text-xl font-bold text-slate-800">Active Meetings</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {activeEvents.length === 0 ? <div className="col-span-2 p-10 text-center bg-slate-50 border border-dashed border-slate-300 rounded-2xl text-slate-400 text-xs">No active meetings. Start one above!</div> : activeEvents.map(e => (
-                <div key={e.id} onClick={() => onEventSelect(e.id)} className="bg-white p-5 rounded-2xl border border-slate-200 hover:border-emerald-500 cursor-pointer shadow-sm group">
+              {activeEvents.length === 0 ? <div className="col-span-2 p-10 text-center bg-slate-50 border border-dashed border-slate-300 rounded-2xl text-slate-400 text-xs">No active meetings.</div> : activeEvents.map(e => (
+                <div key={e.id} onClick={() => isMember && onEventSelect(e.id)} className={`bg-white p-5 rounded-2xl border border-slate-200 shadow-sm group ${isMember ? 'hover:border-emerald-500 cursor-pointer' : 'opacity-60'}`}>
                   <p className="font-bold text-slate-800 truncate mb-1">{e.title}</p>
                   <p className="text-[10px] text-slate-400 mb-3">📍 {e.meetingHcode} • 📅 {formatDateTime(e.meetingDateTime)}</p>
                   <div className="flex justify-between items-center text-[10px] font-bold text-emerald-600 uppercase">
                     <span>KES {e.amountPerMember} / head</span>
-                    <span className="group-hover:translate-x-1 transition-transform">Manage →</span>
+                    {isMember && <span className="group-hover:translate-x-1 transition-transform">Manage →</span>}
                   </div>
                 </div>
               ))}
@@ -108,10 +136,10 @@ const GroupView: React.FC<GroupViewProps> = ({ groupId, userId, onBack, onEventS
         </div>
 
         <div className="space-y-4">
-          <h2 className="text-xl font-bold text-slate-800">Closed Meetings</h2>
+          <h2 className="text-xl font-bold text-slate-800">History</h2>
           <div className="space-y-3">
             {closedEvents.length === 0 ? <div className="p-10 text-center bg-white border border-slate-100 rounded-2xl text-slate-400 text-xs italic">No history yet.</div> : closedEvents.map(e => (
-              <div key={e.id} onClick={() => onEventSelect(e.id)} className="bg-slate-900 text-white p-5 rounded-2xl border border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors shadow-md">
+              <div key={e.id} onClick={() => isMember && onEventSelect(e.id)} className={`bg-slate-900 text-white p-5 rounded-2xl border border-slate-800 shadow-md transition-colors ${isMember ? 'cursor-pointer hover:bg-slate-800' : 'opacity-60'}`}>
                 <div className="flex justify-between items-start mb-2">
                   <p className="font-bold text-sm truncate">{e.title}</p>
                   <span className="text-[9px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-400 font-mono">{e.durationMinutes}m</span>
@@ -120,14 +148,6 @@ const GroupView: React.FC<GroupViewProps> = ({ groupId, userId, onBack, onEventS
                   <span className="text-slate-500">Date: {new Date(e.endTime!).toLocaleDateString()}</span>
                   <span className="text-emerald-400 font-bold">Closed ✓</span>
                 </div>
-                {e.report && (
-                  <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-                    {/* Fixed: cast count to number to resolve unknown type error */}
-                    {Object.entries(e.report.goodsCounts).map(([icon, count]) => (
-                      (count as number) > 0 && <span key={icon} className="bg-slate-800 px-1.5 py-0.5 rounded text-[10px]">{icon} {count as number}</span>
-                    ))}
-                  </div>
-                )}
               </div>
             ))}
           </div>

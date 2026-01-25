@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, SimulatedEmail } from './types.ts';
+import { User, SimulatedEmail, Group } from './types.ts';
 import { getDB } from './services/db.ts';
 import AuthView from './components/Auth.tsx';
 import Dashboard from './components/Dashboard.tsx';
@@ -16,8 +16,10 @@ const App: React.FC = () => {
   const [notifications, setNotifications] = useState<SimulatedEmail[]>([]);
   const [showInbox, setShowInbox] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState<SimulatedEmail | null>(null);
+  const [publicGroupPreview, setPublicGroupPreview] = useState<Group | null>(null);
 
   useEffect(() => {
+    // Session Recovery
     try {
       const saved = localStorage.getItem('autolink_user');
       if (saved) {
@@ -36,6 +38,15 @@ const App: React.FC = () => {
       if (hash.startsWith('#/join/@')) {
         const username = hash.split('@')[1];
         localStorage.setItem('autolink_pending_join', username);
+        
+        // Find group for preview
+        const db = getDB();
+        const group = db.groups.find(g => g.username === username);
+        if (group) {
+          setPublicGroupPreview(group);
+        }
+      } else if (hash === '' || hash === '#/') {
+        setPublicGroupPreview(null);
       }
     };
 
@@ -55,6 +66,7 @@ const App: React.FC = () => {
     window.addEventListener('new-simulated-email', handleNewEmail);
     window.addEventListener('toggle-inbox', handleToggleInbox);
     handleHash();
+    
     return () => {
       window.removeEventListener('hashchange', handleHash);
       window.removeEventListener('new-simulated-email', handleNewEmail);
@@ -65,14 +77,26 @@ const App: React.FC = () => {
   const handleLogout = () => {
     setCurrentUser(null);
     localStorage.removeItem('autolink_user');
+    window.location.hash = '';
   };
 
   const handleLoginSuccess = (user: User) => {
     setCurrentUser(user);
     localStorage.setItem('autolink_user', JSON.stringify(user));
+    
+    const pendingJoin = localStorage.getItem('autolink_pending_join');
+    if (pendingJoin) {
+      const db = getDB();
+      const group = db.groups.find(g => g.username === pendingJoin);
+      if (group) {
+        setActiveGroupId(group.id);
+        setCurrentView('group');
+      }
+    }
   };
 
   const getAssistantContext = () => {
+    if (publicGroupPreview) return `Viewing Public Group: ${publicGroupPreview.name}`;
     if (currentView === 'group' && activeGroupId) {
       const group = getDB().groups.find(g => g.id === activeGroupId);
       return group ? `Group: ${group.name}` : undefined;
@@ -83,6 +107,40 @@ const App: React.FC = () => {
     }
     return undefined;
   };
+
+  // If user is at a join link but not logged in, show the preview landing
+  if (!currentUser && publicGroupPreview) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+        <div className="bg-white p-10 rounded-3xl shadow-2xl max-w-md w-full text-center border border-slate-100">
+          <div className="w-20 h-20 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center font-bold text-3xl mx-auto mb-6">
+            {publicGroupPreview.name[0]}
+          </div>
+          <h1 className="text-3xl font-bold text-slate-800">{publicGroupPreview.name}</h1>
+          <p className="text-emerald-600 font-mono text-sm mb-6">@{publicGroupPreview.username}</p>
+          <p className="text-slate-500 text-sm mb-8">
+            You've been invited to join this group on Auto-Link. 
+            Sign in or create an account to participate in meetups and track payments.
+          </p>
+          <div className="space-y-3">
+            <button 
+              onClick={() => { setPublicGroupPreview(null); window.location.hash = ''; }}
+              className="w-full py-4 bg-emerald-600 text-white font-bold rounded-2xl shadow-xl shadow-emerald-100 hover:bg-emerald-700 transition-all"
+            >
+              Sign Up to Join
+            </button>
+            <button 
+              onClick={() => { setPublicGroupPreview(null); window.location.hash = ''; }}
+              className="w-full py-4 text-slate-500 font-bold hover:text-slate-700 transition-colors"
+            >
+              Back to Login
+            </button>
+          </div>
+        </div>
+        <AIAssistant currentView="Public Group Preview" activeContext={`Group: ${publicGroupPreview.name}`} />
+      </div>
+    );
+  }
 
   if (!currentUser) {
     return (
@@ -111,7 +169,7 @@ const App: React.FC = () => {
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <h1 
             className="text-2xl font-bold tracking-tight cursor-pointer" 
-            onClick={() => setCurrentView('dashboard')}
+            onClick={() => { setCurrentView('dashboard'); window.location.hash = ''; }}
           >
             Auto-Link
           </h1>
@@ -149,7 +207,7 @@ const App: React.FC = () => {
           <GroupView 
             groupId={activeGroupId} 
             userId={currentUser.id}
-            onBack={() => setCurrentView('dashboard')}
+            onBack={() => { setCurrentView('dashboard'); window.location.hash = ''; }}
             onEventSelect={(id) => { setActiveEventId(id); setCurrentView('event'); }}
           />
         )}
