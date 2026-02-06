@@ -13,10 +13,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onGroupSelect, onEventSelec
   const [db, setDb] = useState<DBState>(getDB());
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newGroup, setNewGroup] = useState({ name: '', username: '', hcode: '' });
+  const [activeTab, setActiveTab] = useState<'my' | 'discover'>('my');
 
   const myMemberRecords = db.members.filter(m => m.userId === user.id);
   const myGroups = db.groups.filter(g => myMemberRecords.some(m => m.groupId === g.id));
-  const myInitiatedEvents = db.events.filter(e => e.createdBy === user.id);
+  const publicGroups = db.groups.filter(g => !myMemberRecords.some(m => m.groupId === g.id));
   const myInvites = db.invites.filter(i => i.invitedUserId === user.id);
 
   // Performance Stats
@@ -65,41 +66,86 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onGroupSelect, onEventSelec
           <p className="text-3xl font-bold text-red-600">{missedCount}</p>
         </div>
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <p className="text-slate-500 text-[10px] font-bold uppercase mb-1">Groups</p>
+          <p className="text-slate-500 text-[10px] font-bold uppercase mb-1">My Groups</p>
           <p className="text-3xl font-bold text-blue-600">{myGroups.length}</p>
         </div>
         <div className="bg-emerald-700 p-6 rounded-xl shadow-lg text-white">
-          <p className="text-emerald-100 text-[10px] font-bold uppercase mb-1">My Hcode</p>
-          <p className="text-xl font-bold">{user.hcode}</p>
+          <p className="text-emerald-100 text-[10px] font-bold uppercase mb-1">My Personal ID</p>
+          <p className="text-xl font-bold font-mono">{user.hcode}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-2 space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-slate-800">My Groups</h2>
-            <button onClick={() => setShowCreateModal(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition-all">+ New Group</button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {myGroups.map(g => (
-              <div 
-                key={g.id} 
-                className="bg-white p-5 rounded-xl border border-slate-200 hover:border-emerald-500 transition-all cursor-pointer group shadow-sm"
-                onClick={() => onGroupSelect(g.id)}
+            <div className="flex bg-slate-200/50 p-1 rounded-xl">
+              <button 
+                onClick={() => setActiveTab('my')}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'my' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}
               >
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-lg flex items-center justify-center font-bold">{g.name[0]}</div>
-                  <div>
-                    <h3 className="font-bold text-slate-800">{g.name}</h3>
-                    <p className="text-[10px] text-slate-400 font-mono">@{g.username}</p>
+                My Groups
+              </button>
+              <button 
+                onClick={() => setActiveTab('discover')}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'discover' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}
+              >
+                Discover Community
+              </button>
+            </div>
+            {activeTab === 'my' && (
+              <button onClick={() => setShowCreateModal(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition-all">+ New Group</button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {activeTab === 'my' ? (
+              myGroups.length === 0 ? (
+                <div className="col-span-2 py-12 text-center bg-white rounded-xl border border-dashed border-slate-300">
+                  <p className="text-slate-400 text-sm">You haven't joined any groups yet.</p>
+                  <button onClick={() => setActiveTab('discover')} className="text-emerald-600 text-xs font-bold mt-2 hover:underline">Browse Public Groups →</button>
+                </div>
+              ) : (
+                myGroups.map(g => (
+                  <div 
+                    key={g.id} 
+                    className="bg-white p-5 rounded-xl border border-slate-200 hover:border-emerald-500 transition-all cursor-pointer group shadow-sm"
+                    onClick={() => onGroupSelect(g.id)}
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-lg flex items-center justify-center font-bold">{g.name[0]}</div>
+                      <div>
+                        <h3 className="font-bold text-slate-800">{g.name}</h3>
+                        <p className="text-[10px] text-slate-400 font-mono">@{g.username}</p>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase">
+                      <span>Group Location: <span className="text-emerald-600 font-mono">{g.hcode}</span></span>
+                      <span className="group-hover:text-emerald-600">Enter Group →</span>
+                    </div>
+                  </div>
+                ))
+              )
+            ) : (
+              publicGroups.map(g => (
+                <div 
+                  key={g.id} 
+                  className="bg-white p-5 rounded-xl border border-slate-100 hover:border-blue-500 transition-all cursor-pointer group shadow-sm flex flex-col justify-between"
+                  onClick={() => onGroupSelect(g.id)}
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-blue-100 text-blue-700 rounded-lg flex items-center justify-center font-bold">{g.name[0]}</div>
+                    <div>
+                      <h3 className="font-bold text-slate-800">{g.name}</h3>
+                      <p className="text-[10px] text-slate-400 font-mono">@{g.username}</p>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">📍 {g.hcode}</span>
+                    <span className="text-[10px] font-bold text-blue-600 uppercase group-hover:underline">Preview & Join →</span>
                   </div>
                 </div>
-                <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase">
-                  <span>Hcode: <span className="text-emerald-600 font-mono">{g.hcode}</span></span>
-                  <span className="group-hover:text-emerald-600">Enter Group →</span>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
@@ -107,7 +153,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onGroupSelect, onEventSelec
           <h2 className="text-xl font-bold text-slate-800">Recent Invites</h2>
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
             {myInvites.length === 0 ? (
-              <div className="p-12 text-center text-slate-400 text-sm italic">No invites found.</div>
+              <div className="p-12 text-center text-slate-400 text-sm italic">No active invites.</div>
             ) : (
               myInvites.sort((a,b) => b.id.localeCompare(a.id)).map(invite => {
                 const event = db.events.find(e => e.id === invite.eventId);
@@ -134,6 +180,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onGroupSelect, onEventSelec
                 );
               })
             )}
+          </div>
+          
+          <div className="p-5 bg-blue-50 border border-blue-100 rounded-xl">
+            <h4 className="text-sm font-bold text-blue-800 mb-1">Community Note</h4>
+            <p className="text-[11px] text-blue-600 leading-relaxed">
+              Auto-Link uses <b>Hcodes</b> to ensure privacy. Your personal Hcode ({user.hcode}) is your unique signature in meetings.
+            </p>
           </div>
         </div>
       </div>

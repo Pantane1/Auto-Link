@@ -3,10 +3,42 @@ import { User, Group, GroupMember, Event, EventInvite, DBState, PaymentStatus, S
 
 const DB_KEY = 'autolink_db';
 
+// Seed IDs
+export const SEED_USER_ID = 'seed-user-njoroge';
+export const SEED_GROUP_ID = 'seed-group-pioneers';
+
+const seedUser: User = {
+  id: SEED_USER_ID,
+  fullName: "Njoroge M-Link",
+  username: "njoroge",
+  email: "njoroge@auto-link.co.ke",
+  phone: "0712345678",
+  hcode: "ALPHA-001",
+  isVerified: true,
+  createdAt: "2024-01-01T00:00:00.000Z"
+};
+
+const seedGroup: Group = {
+  id: SEED_GROUP_ID,
+  name: "The Pioneers",
+  username: "pioneers",
+  uniqueId: "AL-1001",
+  hcode: "CBD-HQ",
+  createdBy: SEED_USER_ID,
+  createdAt: "2024-01-01T00:00:00.000Z"
+};
+
+const seedMember: GroupMember = {
+  groupId: SEED_GROUP_ID,
+  userId: SEED_USER_ID,
+  role: 'admin',
+  joinedAt: "2024-01-01T00:00:00.000Z"
+};
+
 const initialState: DBState = {
-  users: [],
-  groups: [],
-  members: [],
+  users: [seedUser],
+  groups: [seedGroup],
+  members: [seedMember],
   events: [],
   invites: [],
   smsLogs: [],
@@ -27,8 +59,32 @@ export const getDB = (): DBState => {
     const data = localStorage.getItem(DB_KEY);
     if (!data) return initialState;
     const parsed = JSON.parse(data);
-    // Basic structural check to avoid crashes if structure changed
-    return { ...initialState, ...parsed };
+    
+    // Ensure state has all required keys
+    const state: DBState = {
+      users: parsed.users || [],
+      groups: parsed.groups || [],
+      members: parsed.members || [],
+      events: parsed.events || [],
+      invites: parsed.invites || [],
+      smsLogs: parsed.smsLogs || [],
+      simulatedEmails: parsed.simulatedEmails || []
+    };
+    
+    // Hard-check for seed user
+    if (!state.users.find(u => u.id === SEED_USER_ID)) {
+      state.users.unshift(seedUser);
+    }
+    // Hard-check for seed group
+    if (!state.groups.find(g => g.id === SEED_GROUP_ID)) {
+      state.groups.unshift(seedGroup);
+    }
+    // Hard-check for seed member
+    if (!state.members.find(m => m.groupId === SEED_GROUP_ID && m.userId === SEED_USER_ID)) {
+      state.members.unshift(seedMember);
+    }
+
+    return state;
   } catch (e) {
     console.warn("Auto-Link: Failed to parse DB, resetting to initial state", e);
     return initialState;

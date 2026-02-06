@@ -62,6 +62,13 @@ const AuthView: React.FC<AuthProps> = ({ onLogin }) => {
     }
   };
 
+  const handleDemoLogin = () => {
+    const njoroge = findUserByUsername('njoroge');
+    if (njoroge) {
+      onLogin(njoroge);
+    }
+  };
+
   const handleVerify = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -87,7 +94,7 @@ const AuthView: React.FC<AuthProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-emerald-700 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-emerald-700 p-4">
       <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-emerald-800">Auto-Link</h1>
@@ -152,99 +159,113 @@ const AuthView: React.FC<AuthProps> = ({ onLogin }) => {
             </div>
           </form>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {step === 'register' && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
-                  <input 
-                    required
-                    type="text" 
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
-                    value={formData.fullName}
-                    onChange={e => setFormData({...formData, fullName: e.target.value})}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
+          <>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {step === 'register' && (
+                <>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Phone (Primary ID)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
                     <input 
                       required
-                      type="tel" 
-                      placeholder="07..."
+                      type="text" 
                       className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
-                      value={formData.phone}
-                      onChange={e => setFormData({...formData, phone: e.target.value})}
+                      value={formData.fullName}
+                      onChange={e => setFormData({...formData, fullName: e.target.value})}
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                    <input 
-                      required
-                      type="email" 
-                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
-                      value={formData.email}
-                      onChange={e => setFormData({...formData, email: e.target.value})}
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Phone (Primary ID)</label>
+                      <input 
+                        required
+                        type="tel" 
+                        placeholder="07..."
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                        value={formData.phone}
+                        onChange={e => setFormData({...formData, phone: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                      <input 
+                        required
+                        type="email" 
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                        value={formData.email}
+                        onChange={e => setFormData({...formData, email: e.target.value})}
+                      />
+                    </div>
                   </div>
-                </div>
-              </>
-            )}
+                </>
+              )}
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Username</label>
-              <input 
-                required
-                type="text" 
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
-                value={formData.username}
-                onChange={e => setFormData({...formData, username: e.target.value})}
-              />
-            </div>
-
-            {step === 'register' && (
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Personal Hcode (Unique Code)</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Username</label>
                 <input 
                   required
                   type="text" 
-                  placeholder="e.g. USER-77"
                   className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
-                  value={formData.hcode}
-                  onChange={e => setFormData({...formData, hcode: e.target.value})}
+                  value={formData.username}
+                  onChange={e => setFormData({...formData, username: e.target.value})}
                 />
               </div>
-            )}
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-              <input 
-                required
-                type="password" 
-                placeholder={step === 'login' ? 'Use "password"' : ''}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
-                value={formData.password}
-                onChange={e => setFormData({...formData, password: e.target.value})}
-              />
-            </div>
+              {step === 'register' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Personal Hcode (Unique Code)</label>
+                  <input 
+                    required
+                    type="text" 
+                    placeholder="e.g. USER-77"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                    value={formData.hcode}
+                    onChange={e => setFormData({...formData, hcode: e.target.value})}
+                  />
+                </div>
+              )}
 
-            <button 
-              type="submit"
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg transition-all shadow-md active:scale-95"
-            >
-              {step === 'login' ? 'Login' : 'Create Account'}
-            </button>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                <input 
+                  required
+                  type="password" 
+                  placeholder={step === 'login' ? 'Use "password"' : ''}
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                  value={formData.password}
+                  onChange={e => setFormData({...formData, password: e.target.value})}
+                />
+              </div>
 
-            <div className="mt-6 text-center">
               <button 
-                type="button"
-                onClick={() => setStep(step === 'login' ? 'register' : 'login')}
-                className="text-emerald-600 hover:underline text-sm font-medium"
+                type="submit"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg transition-all shadow-md active:scale-95"
               >
-                {step === 'login' ? "Don't have an account? Sign Up" : "Already have an account? Login"}
+                {step === 'login' ? 'Login' : 'Create Account'}
               </button>
-            </div>
-          </form>
+
+              <div className="mt-6 text-center">
+                <button 
+                  type="button"
+                  onClick={() => setStep(step === 'login' ? 'register' : 'login')}
+                  className="text-emerald-600 hover:underline text-sm font-medium"
+                >
+                  {step === 'login' ? "Don't have an account? Sign Up" : "Already have an account? Login"}
+                </button>
+              </div>
+            </form>
+            
+            {step === 'login' && (
+              <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+                <p className="text-[10px] text-slate-400 font-bold uppercase mb-3">Instant Demo Mode</p>
+                <button 
+                  onClick={handleDemoLogin}
+                  className="bg-blue-50 text-blue-700 text-xs font-bold px-6 py-2.5 rounded-xl border border-blue-100 hover:bg-blue-100 transition-colors w-full flex items-center justify-center gap-2"
+                >
+                  <span className="text-lg">🚀</span> Login as Njoroge M-Link
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
