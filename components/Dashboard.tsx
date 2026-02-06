@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { User, Group, Event, DBState } from '../types';
-import { getDB, createGroup } from '../services/db';
+import { getDB, createGroup, SEED_USER_ID } from '../services/db';
 
 interface DashboardProps {
   user: User;
@@ -19,6 +19,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onGroupSelect, onEventSelec
   const myGroups = db.groups.filter(g => myMemberRecords.some(m => m.groupId === g.id));
   const publicGroups = db.groups.filter(g => !myMemberRecords.some(m => m.groupId === g.id));
   const myInvites = db.invites.filter(i => i.invitedUserId === user.id);
+  const otherUsers = db.users.filter(u => u.id !== user.id);
 
   // Performance Stats
   const attendedCount = db.events.filter(e => 
@@ -149,7 +150,24 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onGroupSelect, onEventSelec
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold text-slate-800">Community Directory</h2>
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm divide-y divide-slate-100">
+              {otherUsers.map(u => (
+                <div key={u.id} className="p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center font-bold">
+                    {u.fullName[0]}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-800">{u.fullName} {u.id === SEED_USER_ID && <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1 rounded">LEADER</span>}</p>
+                    <p className="text-[10px] text-slate-500 font-mono">{u.hcode}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <h2 className="text-xl font-bold text-slate-800">Recent Invites</h2>
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
             {myInvites.length === 0 ? (

@@ -31,22 +31,16 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ currentView, activeContext })
     e.preventDefault();
     if (!input.trim() || isTyping) return;
 
-    const apiKey = typeof process !== 'undefined' ? process.env.API_KEY : undefined;
-    if (!apiKey) {
-      setMessages(prev => [...prev, { role: 'user', text: input.trim() }, { role: 'model', text: "API Key is missing. I can't think right now!" }]);
-      setInput('');
-      return;
-    }
-
     const userMessage = input.trim();
     setInput('');
     setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
     setIsTyping(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey });
+      // Use process.env.API_KEY directly as required by guidelines
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const chat = ai.chats.create({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-3-flash-preview',
         config: {
           systemInstruction: `You are a helpful and professional AI assistant for the Auto-Link Platform.
           Auto-Link is a platform for group meetups, automated M-Pesa payments, and SMS confirmations in Kenya.
@@ -69,7 +63,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ currentView, activeContext })
       setMessages(prev => [...prev, { role: 'model', text: response.text || "I'm sorry, I couldn't process that request." }]);
     } catch (error) {
       console.error("AI Assistant Error:", error);
-      setMessages(prev => [...prev, { role: 'model', text: "I encountered an error. Please try again." }]);
+      setMessages(prev => [...prev, { role: 'model', text: "I encountered an error. Please ensure your environment has the correct API key configuration." }]);
     } finally {
       setIsTyping(false);
     }
